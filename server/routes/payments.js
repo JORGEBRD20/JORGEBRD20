@@ -71,18 +71,21 @@ router.post('/pix/deposit', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const conn = await pool.getConnection();
     try {
-      const [r] = await conn.query('INSERT INTO transactions (user_id, type, method, amount, status, details) VALUES (?, ?, ?, ?, ?, ?)', [userId, 'deposit', 'pix', amount, 'pending', JSON.stringify({})]);
+      const txTable = table('transactions', req.user && req.user.demo);
+      const histTable = table('historico', req.user && req.user.demo);
+      const poolTable = table('piscina', req.user && req.user.demo);
+      const [r] = await conn.query(`INSERT INTO ${txTable} (user_id, type, method, amount, status, details) VALUES (?, ?, ?, ?, ?, ?)`, [userId, 'deposit', 'pix', amount, 'pending', JSON.stringify({})]);
       const txId = r.insertId;
       const reference = `PIX-${txId}-${Date.now()}`;
-      await conn.query('UPDATE transactions SET reference = ? WHERE id = ?', [reference, txId]);
+      await conn.query(`UPDATE ${txTable} SET reference = ? WHERE id = ?`, [reference, txId]);
       // Simulate immediate confirmation for prototype: credit user and mark transaction completed
       await conn.beginTransaction();
       try {
         await conn.query('UPDATE usuarios SET balance = balance + ? WHERE id = ?', [amount, userId]);
-        await conn.query('UPDATE piscina SET balance = balance + ? WHERE id = 1', [amount]);
-        await conn.query('UPDATE transactions SET status = ?, details = ? WHERE id = ?', ['completed', JSON.stringify({ reference }), txId]);
-        await conn.query('INSERT INTO historico (user_id, type, amount, details) VALUES (?, ?, ?, ?)', [userId, 'deposit', amount, `pix_ref:${reference}`]);
-        await logEvent({ userId, type: 'pix_deposit', details: { txId, amount, reference }, conn });
+        await conn.query(`UPDATE ${poolTable} SET balance = balance + ? WHERE id = 1`, [amount]);
+        await conn.query(`UPDATE ${txTable} SET status = ?, details = ? WHERE id = ?`, ['completed', JSON.stringify({ reference }), txId]);
+        await conn.query(`INSERT INTO ${histTable} (user_id, type, amount, details) VALUES (?, ?, ?, ?)`, [userId, 'deposit', amount, `pix_ref:${reference}`]);
+        await logEvent({ userId, type: 'pix_deposit', details: { txId, amount, reference }, conn, demo: !!(req.user && req.user.demo) });
         await conn.commit();
       } catch (err) { await conn.rollback(); throw err; }
 
