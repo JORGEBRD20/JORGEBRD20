@@ -1,4 +1,5 @@
 const pool = require('./db');
+const { logEvent } = require('./utils/logger');
 
 // raffle runs every 10 seconds
 function startRaffle(io) {
@@ -31,6 +32,9 @@ function startRaffle(io) {
               await conn.query('INSERT INTO historico (user_id, type, amount, details) VALUES (NULL, ?, ?, ?)', ['fee', fee, `slot:${w.slot}, user:${w.rented_by}`]);
 
               results.push({ slot: w.slot, user_id: w.rented_by, net, fee });
+
+              // log event per winner within the transaction
+              await logEvent({ userId: w.rented_by, type: 'raffle_win', details: { slot: w.slot, net, fee }, conn });
             }
             await conn.commit();
           } catch (err) { await conn.rollback(); throw err; }
