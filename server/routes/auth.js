@@ -4,8 +4,7 @@ const pool = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { sendVerificationEmail } = require('../email');
-
-const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret';
+const { JWT_SECRET } = require('../config');
 
 // Register: create user and send 6-digit code
 router.post('/register', async (req, res) => {
@@ -98,8 +97,6 @@ router.get('/me', async (req, res) => {
   if (!auth) return res.status(401).json({ error: 'no token' });
   const parts = auth.split(' ');
   try {
-    const jwt = require('jsonwebtoken');
-    const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret';
     const payload = jwt.verify(parts[1], JWT_SECRET);
     const conn = await pool.getConnection();
     try {
