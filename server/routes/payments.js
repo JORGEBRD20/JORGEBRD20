@@ -13,9 +13,11 @@ router.post('/deposit', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const conn = await pool.getConnection();
     try {
+      const histTable = table('historico', req.user && req.user.demo);
+      const usersTable = req.user && req.user.demo ? 'usuarios' : 'usuarios';
       await conn.query('UPDATE usuarios SET balance = balance + ? WHERE id = ?', [amount, userId]);
-      await conn.query('INSERT INTO historico (user_id, type, amount, details) VALUES (?, ?, ?, ?)', [userId, 'deposit', amount, `method:${method || 'pix'}`]);
-      await logEvent({ userId, type: 'deposit', details: { amount, method: method || 'pix' }, conn });
+      await conn.query(`INSERT INTO ${histTable} (user_id, type, amount, details) VALUES (?, ?, ?, ?)`, [userId, 'deposit', amount, `method:${method || 'pix'}`]);
+      await logEvent({ userId, type: 'deposit', details: { amount, method: method || 'pix' }, conn, demo: !!(req.user && req.user.demo) });
       const [u] = await conn.query('SELECT balance FROM usuarios WHERE id = ?', [userId]);
       return res.json({ ok: true, balance: u[0].balance });
     } finally { conn.release(); }
