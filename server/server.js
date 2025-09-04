@@ -36,10 +36,19 @@ io.on('connection', (socket) => {
   socket.on('ping', () => socket.emit('pong'));
 });
 
-// start raffle worker
-startRaffle(io);
+(async () => {
+  try {
+    const { ensureDemoUser } = require('./demoUser');
+    await ensureDemoUser();
+    // start raffle worker
+    startRaffle(io);
 
-const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => console.log(`Server running on ${PORT}`));
+    const PORT = process.env.PORT || 4000;
+    server.listen(PORT, () => console.log(`Server running on ${PORT}`));
+  } catch (err) {
+    console.error('Server init error', err);
+    process.exit(1);
+  }
+})();
 
 module.exports = { app, server, io };
