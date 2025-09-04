@@ -1,0 +1,15 @@
+:root{--bg:#0f172a;--card-glass:rgba(255,255,255,0.03);--accent1:#ff6b6b;--accent2:#ffd166;--text:#fff}
+html,body,#__next{height:100%;margin:0}
+.snake-page{height:100vh;display:flex;gap:20px;background:linear-gradient(120deg,#0f172a,#0b1220);color:var(--text);font-family:Arial,Helvetica,sans-serif}
+.snake-left{width:420px;padding:16px;box-sizing:border-box;background:var(--card-glass);border-right:1px solid rgba(255,255,255,0.03);overflow:auto}
+.snake-right{flex:1;display:flex;align-items:center;justify-content:center}
+.form-control input{width:100%;padding:8px 10px;margin:6px 0;border-radius:6px;border:none;box-sizing:border-box}
+.btn{padding:8px 10px;margin:6px 0;border-radius:6px;border:none;cursor:pointer;background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#111;font-weight:bold}
+.btn.small{width:auto;padding:6px 10px;display:inline-block}
+.tile-row{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap}
+.tile{background:var(--card-glass);padding:8px 10px;border-radius:8px;min-width:120px}
+.canvas-board{background:#071020;border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,0.6);border:6px solid rgba(255,255,255,0.02)}
+.controls{margin-top:8px}
+.neon{font-weight:bold;text-shadow:0 0 10px rgba(255,255,255,0.08),0 0 20px rgba(255,255,255,0.04)}
+.history-box{height:120px;overflow:auto;background:rgba(0,0,0,0.2);padding:8px;border-radius:6px;white-space:pre-wrap}
+@media (max-width:900px){.snake-page{flex-direction:column}.snake-left{width:100%}.snake-right{order:2}.snake-left{order:1}}
