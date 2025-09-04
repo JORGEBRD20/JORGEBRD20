@@ -1,0 +1,68 @@
+-- Migration: demo tables (isolated demo data)
+
+CREATE TABLE IF NOT EXISTS `demo_piscina` (
+  `id` INT NOT NULL,
+  `balance` DECIMAL(18,4) NOT NULL DEFAULT 0.0000,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `demo_quadrados` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `slot` INT NOT NULL,
+  `rented_by` BIGINT UNSIGNED NULL,
+  `rented_until` DATETIME NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slot_unique` (`slot`),
+  INDEX (`rented_by`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `demo_historico` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NULL,
+  `type` VARCHAR(50) NOT NULL,
+  `amount` DECIMAL(18,4) NOT NULL,
+  `details` TEXT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX (`user_id`),
+  INDEX (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `demo_pix_keys` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `pix_key` VARCHAR(255) NOT NULL,
+  `type` VARCHAR(50) NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `user_pix_unique` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `demo_transactions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NULL,
+  `type` VARCHAR(50) NOT NULL,
+  `method` VARCHAR(50) NOT NULL DEFAULT 'pix',
+  `amount` DECIMAL(18,4) NOT NULL,
+  `status` VARCHAR(20) NOT NULL DEFAULT 'pending',
+  `reference` VARCHAR(255) NULL,
+  `details` JSON NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX (`user_id`),
+  INDEX (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `demo_events` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT UNSIGNED NULL,
+  `type` VARCHAR(100) NOT NULL,
+  `details` JSON NULL,
+  `ip` VARCHAR(45) NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  INDEX (`user_id`),
+  INDEX (`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
