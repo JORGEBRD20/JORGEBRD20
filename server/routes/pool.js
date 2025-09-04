@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const authMiddleware = require('../utils/authMiddleware');
+const { logEvent } = require('../utils/logger');
 
 // Return pool status and squares
 router.get('/status', async (req, res) => {
@@ -48,6 +49,7 @@ router.post('/rent', authMiddleware, async (req, res) => {
       const until = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
       await conn.query('UPDATE quadrados SET rented_by = ?, rented_until = ? WHERE slot = ?', [userId, until, slot]);
       await conn.query('INSERT INTO historico (user_id, type, amount, details) VALUES (?, ?, ?, ?)', [userId, 'rental', cost, `slot:${slot}`]);
+      await logEvent({ userId, type: 'rent', details: { slot, cost }, conn });
       await conn.commit();
 
       // return new status
