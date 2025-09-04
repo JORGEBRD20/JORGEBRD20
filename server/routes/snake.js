@@ -386,7 +386,7 @@ let collected = 0;
 let running = false;
 let paused = false;
 let coinsNeeded = neededCoinsToWin;
-let coinValueLocal = ${coinValue}; // 0.05
+let coinValueLocal = coinValue; // 0.05
 let roundIdLocal = null;
 
 document.getElementById('needed').innerText = coinsNeeded;
