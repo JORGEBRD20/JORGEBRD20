@@ -10,8 +10,10 @@ router.get('/status', async (req, res) => {
   try {
     const conn = await pool.getConnection();
     try {
-      const [p] = await conn.query('SELECT balance FROM piscina WHERE id = 1');
-      const [squares] = await conn.query('SELECT id, slot, rented_by, rented_until FROM quadrados ORDER BY slot');
+      const poolTable = table('piscina', req.user && req.user.demo);
+      const quadTable = table('quadrados', req.user && req.user.demo);
+      const [p] = await conn.query(`SELECT balance FROM ${poolTable} WHERE id = 1`);
+      const [squares] = await conn.query(`SELECT id, slot, rented_by, rented_until FROM ${quadTable} ORDER BY slot`);
       return res.json({ ok: true, poolBalance: p[0].balance, squares });
     } finally { conn.release(); }
   } catch (err) {
