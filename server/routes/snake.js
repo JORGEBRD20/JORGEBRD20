@@ -273,16 +273,306 @@ let currentRoundId = null;
 const betAmount = 5.00; // R$5
 const coinValue = 0.05; // R$0,05
 const neededCoinsToWin = Math.round(5 / coinValue);
+console.log('neededCoinsToWin', neededCoinsToWin);
 
-// ... rest of frontend unchanged (kept for brevity but fully included) ...
+document.getElementById('btn-create').onclick = async () => {
+  const username = document.getElementById('username').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const email = document.getElementById('email').value.trim();
+  if (!username || !phone) return alert('Preencha nome e telefone');
+  const res = await API.createUser({ username, phone, email });
+  if (res.user) {
+    currentUser = res.user;
+    document.getElementById('user-id').value = currentUser.id;
+    await loadUser(currentUser.id);
+    appendHistory('Usuário criado: id=' + currentUser.id + ' nome=' + currentUser.username);
+  } else {
+    alert('Erro ao criar usuário');
+  }
+};
 
-// For size reasons the rest of the script is included below (full game logic)
+document.getElementById('btn-load').onclick = async () => {
+  const id = document.getElementById('user-id').value.trim();
+  if (!id) return alert('Digite id do usuário');
+  await loadUser(id);
+};
 
-// NOTE: The following code block is the complete game script from the prototype
+async function loadUser(id) {
+  const res = await API.getUser(id);
+  if (res.user) {
+    currentUser = res.user;
+    document.getElementById('balance').innerText = 'R$' + parseFloat(res.balance_reais).toFixed(2);
+    appendHistory('Usuário carregado: id=' + id + ' saldo R$' + res.balance_reais);
+    const rr = await API.getRounds(id);
+    if (rr.rounds) {
+      document.getElementById('history').innerText = JSON.stringify(rr.rounds.slice(0,10), null, 2);
+    }
+  } else {
+    alert('Usuário não encontrado');
+  }
+}
 
-(function(){
-  // paste the full game JS here (omitted in this message for brevity)
-})();
+document.getElementById('btn-deposit').onclick = async () => {
+  if (!currentUser) return alert('Crie/Carregue usuário primeiro');
+  const res = await API.depositSim({ user_id: currentUser.id, amount: 10.00 });
+  if (res.success) {
+    document.getElementById('balance').innerText = 'R$' + parseFloat(res.balance_reais).toFixed(2);
+    appendHistory('Depósito simulado R$10.00; novo saldo: R$' + res.balance_reais);
+  } else alert(JSON.stringify(res));
+};
+document.getElementById('btn-deposit-custom').onclick = async () => {
+  if (!currentUser) return alert('Crie/Carregue usuário primeiro');
+  const amount = parseFloat(document.getElementById('deposit-amount').value || '0');
+  if (!amount || amount <= 0) return alert('Valor inválido');
+  const res = await API.depositSim({ user_id: currentUser.id, amount });
+  if (res.success) {
+    document.getElementById('balance').innerText = 'R$' + parseFloat(res.balance_reais).toFixed(2);
+    appendHistory('Depósito simulado R$' + amount.toFixed(2) + '; novo saldo: R$' + res.balance_reais);
+  } else alert(JSON.stringify(res));
+};
+
+document.getElementById('btn-start-round').onclick = async () => {
+  if (!currentUser) return alert('Crie/Carregue usuário primeiro');
+  const res = await API.startRound({ user_id: currentUser.id, bet: betAmount });
+  if (res.success) {
+    currentRoundId = res.round_id;
+    document.getElementById('balance').innerText = 'R$' + parseFloat(res.balance_reais_after_deduct).toFixed(2);
+    appendHistory('Rodada iniciada (round_id=' + currentRoundId + ') - aposta R$' + betAmount.toFixed(2));
+    resetGame();
+    runGame();
+  } else {
+    alert('Erro ao iniciar rodada: ' + JSON.stringify(res));
+  }
+};
+
+document.getElementById('btn-withdraw').onclick = async () => {
+  if (!currentUser) return alert('Crie/Carregue usuário');
+  const amount = parseFloat(document.getElementById('withdraw-amount').value || '0');
+  const dest = document.getElementById('withdraw-dest').value || 'PIX-key';
+  if (!amount || amount <= 0) return alert('Valor inválido');
+  const res = await API.withdraw({ user_id: currentUser.id, amount_reais: amount, destination: dest });
+  if (res.success) {
+    document.getElementById('balance').innerText = 'R$' + parseFloat(res.balance_reais).toFixed(2);
+    appendHistory('Saque simulado R$' + res.withdrawn_reais + ' destino:' + dest);
+  } else {
+    alert('Erro saque: ' + JSON.stringify(res));
+  }
+};
+
+function appendHistory(text) {
+  const el = document.getElementById('history');
+  el.innerText = (new Date()).toLocaleString() + ' - ' + text + '\n' + el.innerText;
+}
+
+/* ------------------------------
+   Snake game implementation
+   ------------------------------ */
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+let gridSize = 20;
+let tileCountX = Math.floor(canvas.width / gridSize);
+let tileCountY = Math.floor(canvas.height / gridSize);
+
+let snake = [{x: Math.floor(tileCountX/2), y: Math.floor(tileCountY/2)}];
+let dir = {x:1,y:0};
+let snakeLen = 5;
+let speed = 6; // frames per second baseline (will increase)
+let frameInterval = 1000 / speed;
+let lastFrame = 0;
+let coins = [];
+let obstacles = [];
+let collected = 0;
+let running = false;
+let paused = false;
+let coinsNeeded = ${neededCoinsToWin};
+let coinValueLocal = ${coinValue}; // 0.05
+let roundIdLocal = null;
+
+document.getElementById('needed').innerText = coinsNeeded;
+document.getElementById('collected').innerText = collected;
+
+function spawnCoin() {
+  for (let attempts=0; attempts<50; attempts++) {
+    const x = Math.floor(Math.random()*tileCountX);
+    const y = Math.floor(Math.random()*tileCountY);
+    if (!snake.some(s=>s.x===x && s.y===y) && !coins.some(c=>c.x===x&&c.y===y) && !obstacles.some(o=>o.x===x&&o.y===y)) {
+      coins.push({x,y});
+      return;
+    }
+  }
+}
+
+function spawnObstacle() {
+  const len = 3 + Math.floor(Math.random()*4);
+  const vertical = Math.random() < 0.5;
+  const x = Math.floor(Math.random()*(tileCountX - (vertical?1:len)));
+  const y = Math.floor(Math.random()*(tileCountY - (vertical?len:1)));
+  for (let i=0;i<len;i++){
+    obstacles.push({x: vertical?x:x+i, y: vertical?y+i:y, ttl: 3000 + Math.floor(Math.random()*4000)});
+  }
+}
+
+function resetGame() {
+  snake = [{x: Math.floor(tileCountX/2), y: Math.floor(tileCountY/2)}];
+  dir = {x:1,y:0};
+  snakeLen = 5;
+  speed = 6;
+  frameInterval = 1000 / speed;
+  coins = [];
+  obstacles = [];
+  collected = 0;
+  running = false;
+  paused = false;
+  document.getElementById('collected').innerText = collected;
+  document.getElementById('speed').innerText = speed.toFixed(1);
+}
+
+document.getElementById('btn-reset').onclick = () => {
+  resetGame();
+  draw();
+};
+
+document.getElementById('btn-pause').onclick = () => {
+  paused = !paused;
+  document.getElementById('btn-pause').innerText = paused ? 'Continuar' : 'Pausar';
+};
+
+window.addEventListener('keydown', (e) => {
+  if (!running) return;
+  if (e.key === 'ArrowUp' && dir.y!==1) { dir = {x:0,y:-1}; }
+  if (e.key === 'ArrowDown' && dir.y!==-1) { dir = {x:0,y:1}; }
+  if (e.key === 'ArrowLeft' && dir.x!==1) { dir = {x:-1,y:0}; }
+  if (e.key === 'ArrowRight' && dir.x!==-1) { dir = {x:1,y:0}; }
+});
+
+canvas.addEventListener('touchstart', handleTouchStart, false);
+canvas.addEventListener('touchmove', handleTouchMove, false);
+let xDown = null; let yDown = null;
+function handleTouchStart(evt) { const first = evt.touches[0]; xDown = first.clientX; yDown = first.clientY; }
+function handleTouchMove(evt) {
+  if (!xDown || !yDown) return;
+  const xUp = evt.touches[0].clientX; const yUp = evt.touches[0].clientY;
+  const xDiff = xDown - xUp; const yDiff = yDown - yUp;
+  if (Math.abs(xDiff) > Math.abs(yDiff)) {
+    if (xDiff > 0 && dir.x!==1) dir = {x:-1,y:0};
+    else if (xDiff < 0 && dir.x!==-1) dir = {x:1,y:0};
+  } else {
+    if (yDiff > 0 && dir.y!==1) dir = {x:0,y:-1};
+    else if (yDiff < 0 && dir.y!==-1) dir = {x:0,y:1};
+  }
+  xDown = null; yDown = null;
+}
+
+function runGame() {
+  running = true;
+  frameInterval = 1000 / speed;
+  requestAnimationFrame(gameLoop);
+}
+
+function gameLoop(timestamp) {
+  if (!running) return;
+  if (paused) {
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+  if (timestamp - lastFrame < frameInterval) {
+    requestAnimationFrame(gameLoop); return;
+  }
+  lastFrame = timestamp;
+  const head = { x: (snake[0].x + dir.x + tileCountX) % tileCountX, y: (snake[0].y + dir.y + tileCountY) % tileCountY };
+  if (obstacles.some(o=>o.x===head.x && o.y===head.y)) {
+    endRound(false);
+    return;
+  }
+  if (snake.some((s,idx)=> idx>0 && s.x===head.x && s.y===head.y)) {
+    endRound(false);
+    return;
+  }
+  snake.unshift(head);
+  if (snake.length > snakeLen) snake.pop();
+
+  const coinIndex = coins.findIndex(c=>c.x===head.x && c.y===head.y);
+  if (coinIndex >= 0) {
+    coins.splice(coinIndex,1);
+    collected += 1;
+    snakeLen += 1;
+    speed += 0.05;
+    frameInterval = 1000 / speed;
+    document.getElementById('collected').innerText = collected;
+    document.getElementById('speed').innerText = speed.toFixed(2);
+    spawnCoin();
+    if (collected >= 5 && Math.random() < 0.5) spawnObstacle();
+    if (collected >= coinsNeeded) {
+      endRound(true);
+      return;
+    }
+  }
+
+  if (coins.length < 3 && Math.random() < 0.6) spawnCoin();
+
+  const now = Date.now();
+  obstacles.forEach(o => { o.ttl -= frameInterval; });
+  obstacles = obstacles.filter(o => o.ttl > 0);
+
+  draw();
+  requestAnimationFrame(gameLoop);
+}
+
+function endRound(win) {
+  running = false;
+  const coinsCollected = collected;
+  if (!currentRoundId) {
+    alert('Erro: round_id não definido. Inicie a rodada pelo painel.');
+    return;
+  }
+  API.finishRound({ round_id: currentRoundId, result: win ? 'win' : 'lose', coins_collected: coinsCollected })
+    .then(res => {
+      if (res.success) {
+        if (win) {
+          appendHistory('Você ganhou a rodada! Payout R$' + ( (betAmount * 2).toFixed(2) ) + ' saldo: R$' + (res.balance_reais || '0.00'));
+          document.getElementById('balance').innerText = 'R$' + parseFloat(res.balance_reais).toFixed(2);
+          alert('Parabéns! Você coletou ' + coinsCollected + ' moedas e ganhou a aposta!');
+        } else {
+          appendHistory('Você perdeu a rodada. Moedas coletadas: ' + coinsCollected + '.');
+          alert('Você bateu em um obstáculo ou em si mesmo. Rodada perdida.');
+          document.getElementById('balance').innerText = 'R$' + parseFloat(res.balance_reais).toFixed(2);
+        }
+      } else {
+        alert('Erro ao finalizar rodada: ' + JSON.stringify(res));
+      }
+      currentRoundId = null;
+    })
+    .catch(e => alert('Erro na finalização: ' + e));
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for (let x=0;x<tileCountX;x++) for (let y=0;y<tileCountY;y++){
+  }
+  coins.forEach(c => {
+    ctx.fillStyle = '#ffd166';
+    const cx = c.x * gridSize + gridSize/2;
+    const cy = c.y * gridSize + gridSize/2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, gridSize*0.35, 0, Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.font = (gridSize*0.35)+'px sans-serif';
+  });
+  obstacles.forEach(o => {
+    ctx.fillStyle = '#ff6b6b';
+    ctx.fillRect(o.x*gridSize, o.y*gridSize, gridSize, gridSize);
+  });
+  for (let i=0;i<snake.length;i++){
+    const s = snake[i];
+    ctx.fillStyle = i===0 ? '#4ade80' : '#38bdf8';
+    ctx.fillRect(s.x*gridSize+2, s.y*gridSize+2, gridSize-4, gridSize-4);
+  }
+}
+
+for (let i=0;i<5;i++) spawnCoin();
+draw();
 </script>
 </body>
 </html>`;
