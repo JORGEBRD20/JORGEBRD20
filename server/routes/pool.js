@@ -74,7 +74,8 @@ router.get('/history', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const conn = await pool.getConnection();
     try {
-      const [rows] = await conn.query('SELECT id, type, amount, details, created_at FROM historico WHERE user_id = ? ORDER BY created_at DESC LIMIT 200', [userId]);
+      const histTable = table('historico', req.user && req.user.demo);
+      const [rows] = await conn.query(`SELECT id, type, amount, details, created_at FROM ${histTable} WHERE user_id = ? ORDER BY created_at DESC LIMIT 200`, [userId]);
       return res.json({ ok: true, history: rows });
     } finally { conn.release(); }
   } catch (err) {
