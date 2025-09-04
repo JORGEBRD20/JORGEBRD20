@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db');
 const authMiddleware = require('../utils/authMiddleware');
+const { logEvent } = require('../utils/logger');
 
 // Simulated deposit (pix/cartao)
 router.post('/deposit', authMiddleware, async (req, res) => {
@@ -13,6 +14,7 @@ router.post('/deposit', authMiddleware, async (req, res) => {
     try {
       await conn.query('UPDATE usuarios SET balance = balance + ? WHERE id = ?', [amount, userId]);
       await conn.query('INSERT INTO historico (user_id, type, amount, details) VALUES (?, ?, ?, ?)', [userId, 'deposit', amount, `method:${method || 'pix'}`]);
+      await logEvent({ userId, type: 'deposit', details: { amount, method: method || 'pix' }, conn });
       const [u] = await conn.query('SELECT balance FROM usuarios WHERE id = ?', [userId]);
       return res.json({ ok: true, balance: u[0].balance });
     } finally { conn.release(); }
@@ -35,6 +37,7 @@ router.post('/withdraw', authMiddleware, async (req, res) => {
       if (balance < amount) return res.status(400).json({ error: 'insufficient funds' });
       await conn.query('UPDATE usuarios SET balance = balance - ? WHERE id = ?', [amount, userId]);
       await conn.query('INSERT INTO historico (user_id, type, amount, details) VALUES (?, ?, ?, ?)', [userId, 'withdraw', -amount, 'withdraw simulated']);
+      await logEvent({ userId, type: 'withdraw', details: { amount }, conn });
       const [u] = await conn.query('SELECT balance FROM usuarios WHERE id = ?', [userId]);
       return res.json({ ok: true, balance: u[0].balance });
     } finally { conn.release(); }
