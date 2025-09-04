@@ -92,4 +92,24 @@ router.post('/login', async (req, res) => {
   }
 });
 
+// Get current user
+router.get('/me', async (req, res) => {
+  const auth = req.headers.authorization;
+  if (!auth) return res.status(401).json({ error: 'no token' });
+  const parts = auth.split(' ');
+  try {
+    const jwt = require('jsonwebtoken');
+    const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret';
+    const payload = jwt.verify(parts[1], JWT_SECRET);
+    const conn = await pool.getConnection();
+    try {
+      const [rows] = await conn.query('SELECT id, email, display_name, balance FROM usuarios WHERE id = ?', [payload.id]);
+      if (!rows.length) return res.status(404).json({ error: 'user not found' });
+      return res.json({ ok: true, user: rows[0] });
+    } finally { conn.release(); }
+  } catch (err) {
+    return res.status(401).json({ error: 'invalid token' });
+  }
+});
+
 module.exports = router;
