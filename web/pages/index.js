@@ -95,7 +95,11 @@ export default function Home() {
     <div>
       <header className="header-bar">
         <div className="header-top">
-          <h1 className="app-title">PISCINA DE LIQUIDEZ</h1>
+          <img
+            className="app-logo"
+            src="https://cdn.builder.io/api/v1/image/assets%2F531b084ebdc643e28c7df8016e69db42%2F80cee58d84aa4ed294a3b9c7c92446c1?format=webp&width=800"
+            alt="Piscina de Liquidez"
+          />
           <div className="action-row header-actions">
             <button className="action-button" onClick={sendCode}>Cadastrar</button>
             <button className="action-button" onClick={verify}>Confirmar Código</button>
