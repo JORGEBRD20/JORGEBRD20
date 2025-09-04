@@ -104,7 +104,9 @@ export default function Home() {
             <button className="action-button" onClick={sendCode}>Cadastrar</button>
             <button className="action-button" onClick={verify}>Confirmar Código</button>
             <button className="action-button" onClick={login}>Login</button>
-            <button className="action-button" onClick={deposit}>Depositar</button>
+            <button className="action-button" onClick={setPixKey}>Configurar PIX</button>
+            <button className="action-button" onClick={depositPix}>Depositar (PIX)</button>
+            <button className="action-button" onClick={withdrawPix}>Sacar (PIX)</button>
           </div>
         </div>
 
