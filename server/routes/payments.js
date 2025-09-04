@@ -35,9 +35,10 @@ router.post('/pix/key', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const conn = await pool.getConnection();
     try {
-      // upsert
-      await conn.query('INSERT INTO pix_keys (user_id, pix_key, type) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE pix_key = VALUES(pix_key), type = VALUES(type)', [userId, pixKey, type || null]);
-      await logEvent({ userId, type: 'set_pix_key', details: { pixKey, type } , conn });
+      // upsert into proper table (demo or real)
+      const pixTable = table('pix_keys', req.user && req.user.demo);
+      await conn.query(`INSERT INTO ${pixTable} (user_id, pix_key, type) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE pix_key = VALUES(pix_key), type = VALUES(type)`, [userId, pixKey, type || null]);
+      await logEvent({ userId, type: 'set_pix_key', details: { pixKey, type } , conn, demo: !!(req.user && req.user.demo) });
       return res.json({ ok: true });
     } finally { conn.release(); }
   } catch (err) {
