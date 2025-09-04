@@ -32,6 +32,10 @@ router.post('/rent', authMiddleware, async (req, res) => {
     const conn = await pool.getConnection();
     try {
       await conn.beginTransaction();
+      const poolTable = table('piscina', req.user && req.user.demo);
+      const quadTable = table('quadrados', req.user && req.user.demo);
+      const histTable = table('historico', req.user && req.user.demo);
+
       const [userRows] = await conn.query('SELECT balance FROM usuarios WHERE id = ? FOR UPDATE', [userId]);
       if (!userRows.length) { await conn.rollback(); return res.status(404).json({ error: 'user not found' }); }
       const balance = parseFloat(userRows[0].balance);
@@ -39,7 +43,7 @@ router.post('/rent', authMiddleware, async (req, res) => {
       if (balance < cost) { await conn.rollback(); return res.status(400).json({ error: 'insufficient balance' }); }
 
       // Check slot availability
-      const [slotRows] = await conn.query('SELECT id, rented_until FROM quadrados WHERE slot = ? FOR UPDATE', [slot]);
+      const [slotRows] = await conn.query(`SELECT id, rented_until FROM ${quadTable} WHERE slot = ? FOR UPDATE`, [slot]);
       if (!slotRows.length) { await conn.rollback(); return res.status(404).json({ error: 'slot not found' }); }
       const now = new Date();
       const rented_until = slotRows[0].rented_until;
@@ -47,12 +51,12 @@ router.post('/rent', authMiddleware, async (req, res) => {
 
       // Deduct user balance and add to pool
       await conn.query('UPDATE usuarios SET balance = balance - ? WHERE id = ?', [cost, userId]);
-      await conn.query('UPDATE piscina SET balance = balance + ? WHERE id = 1', [cost]);
+      await conn.query(`UPDATE ${poolTable} SET balance = balance + ? WHERE id = 1`, [cost]);
 
       const until = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-      await conn.query('UPDATE quadrados SET rented_by = ?, rented_until = ? WHERE slot = ?', [userId, until, slot]);
-      await conn.query('INSERT INTO historico (user_id, type, amount, details) VALUES (?, ?, ?, ?)', [userId, 'rental', cost, `slot:${slot}`]);
-      await logEvent({ userId, type: 'rent', details: { slot, cost }, conn });
+      await conn.query(`UPDATE ${quadTable} SET rented_by = ?, rented_until = ? WHERE slot = ?`, [userId, until, slot]);
+      await conn.query(`INSERT INTO ${histTable} (user_id, type, amount, details) VALUES (?, ?, ?, ?)`, [userId, 'rental', cost, `slot:${slot}`]);
+      await logEvent({ userId, type: 'rent', details: { slot, cost }, conn, demo: !!(req.user && req.user.demo) });
       await conn.commit();
 
       // return new status
