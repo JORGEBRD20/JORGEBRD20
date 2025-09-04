@@ -154,26 +154,31 @@ router.post('/pix/withdraw', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const conn = await pool.getConnection();
     try {
+      const txTable = table('transactions', req.user && req.user.demo);
+      const histTable = table('historico', req.user && req.user.demo);
+      const pixTable = table('pix_keys', req.user && req.user.demo);
+      const poolTable = table('piscina', req.user && req.user.demo);
+
       const [urows] = await conn.query('SELECT balance FROM usuarios WHERE id = ? FOR UPDATE', [userId]);
       if (!urows.length) return res.status(404).json({ error: 'user not found' });
       const balance = parseFloat(urows[0].balance);
       if (balance < amount) return res.status(400).json({ error: 'insufficient funds' });
-      const [pixRows] = await conn.query('SELECT pix_key FROM pix_keys WHERE user_id = ?', [userId]);
+      const [pixRows] = await conn.query(`SELECT pix_key FROM ${pixTable} WHERE user_id = ?`, [userId]);
       if (!pixRows.length) return res.status(400).json({ error: 'pix key not set' });
       const pixKey = pixRows[0].pix_key;
 
       // create transaction and process
-      const [r] = await conn.query('INSERT INTO transactions (user_id, type, method, amount, status, details) VALUES (?, ?, ?, ?, ?, ?)', [userId, 'withdraw', 'pix', amount, 'pending', JSON.stringify({ pixKey })]);
+      const [r] = await conn.query(`INSERT INTO ${txTable} (user_id, type, method, amount, status, details) VALUES (?, ?, ?, ?, ?, ?)`, [userId, 'withdraw', 'pix', amount, 'pending', JSON.stringify({ pixKey })]);
       const txId = r.insertId;
 
       await conn.beginTransaction();
       try {
         // deduct user balance and pool (pool pays out)
         await conn.query('UPDATE usuarios SET balance = balance - ? WHERE id = ?', [amount, userId]);
-        await conn.query('UPDATE piscina SET balance = balance - ? WHERE id = 1', [amount]);
-        await conn.query('UPDATE transactions SET status = ?, reference = ? WHERE id = ?', ['completed', `WDX-${txId}-${Date.now()}`, txId]);
-        await conn.query('INSERT INTO historico (user_id, type, amount, details) VALUES (?, ?, ?, ?)', [userId, 'withdraw', -amount, `pix:${pixKey}`]);
-        await logEvent({ userId, type: 'pix_withdraw', details: { txId, amount, pixKey }, conn });
+        await conn.query(`UPDATE ${poolTable} SET balance = balance - ? WHERE id = 1`, [amount]);
+        await conn.query(`UPDATE ${txTable} SET status = ?, reference = ? WHERE id = ?`, ['completed', `WDX-${txId}-${Date.now()}`, txId]);
+        await conn.query(`INSERT INTO ${histTable} (user_id, type, amount, details) VALUES (?, ?, ?, ?)`, [userId, 'withdraw', -amount, `pix:${pixKey}`]);
+        await logEvent({ userId, type: 'pix_withdraw', details: { txId, amount, pixKey }, conn, demo: !!(req.user && req.user.demo) });
         await conn.commit();
       } catch (err) { await conn.rollback(); throw err; }
 
