@@ -5,6 +5,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { sendVerificationEmail } = require('../email');
 const { JWT_SECRET } = require('../config');
+const { logEvent } = require('../utils/logger');
 
 // Register: create user and send 6-digit code
 router.post('/register', async (req, res) => {
@@ -19,7 +20,10 @@ router.post('/register', async (req, res) => {
     try {
       const [exists] = await conn.query('SELECT id FROM usuarios WHERE email = ?', [email]);
       if (exists.length) return res.status(400).json({ error: 'email already registered' });
-      await conn.query('INSERT INTO usuarios (email, phone, verification_hash) VALUES (?, ?, ?)', [email, phone, hashed]);
+      const [r] = await conn.query('INSERT INTO usuarios (email, phone, verification_hash) VALUES (?, ?, ?)', [email, phone, hashed]);
+      const newId = r.insertId;
+      // log event (no sensitive data)
+      await logEvent({ userId: newId, type: 'register', details: { email, phone } });
     } finally { conn.release(); }
 
     await sendVerificationEmail(email, code);
@@ -59,6 +63,7 @@ router.post('/verify', async (req, res) => {
       await conn.query(`UPDATE usuarios SET ${updates.join(', ')} WHERE id = ?`, params);
 
       const token = jwt.sign({ id: user.id, email }, JWT_SECRET, { expiresIn: '7d' });
+      await logEvent({ userId: user.id, type: 'verify', details: { email } });
       return res.json({ ok: true, token });
     } finally { conn.release(); }
   } catch (err) {
@@ -83,6 +88,7 @@ router.post('/login', async (req, res) => {
       if (!ok) return res.status(400).json({ error: 'invalid credentials' });
       if (!user.verified) return res.status(400).json({ error: 'account not verified' });
       const token = jwt.sign({ id: user.id, email }, JWT_SECRET, { expiresIn: '7d' });
+      await logEvent({ userId: user.id, type: 'login', details: { email } });
       return res.json({ ok: true, token });
     } finally { conn.release(); }
   } catch (err) {
