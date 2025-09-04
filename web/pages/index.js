@@ -3,12 +3,16 @@ import io from 'socket.io-client';
 import axios from 'axios';
 
 export default function Home() {
+  const DEMO_POOL = 385000.00;
+  const DEMO_USER_BALANCE = 1200.00;
+
   const [poolBalance, setPoolBalance] = useState('R$ 0,00');
   const [userBalance, setUserBalance] = useState('R$ 0,00');
   const [squares, setSquares] = useState([]);
   const [roulette, setRoulette] = useState('Aguardando sorteio...');
   const [history, setHistory] = useState([]);
   const [token, setToken] = useState('');
+  const [isDemo, setIsDemo] = useState(true);
 
   useEffect(() => {
     const s = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000');
@@ -27,12 +31,30 @@ export default function Home() {
 
   async function fetchStatus() {
     try {
-      const res = await axios.get((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') + '/pool/status');
-      if (res.data.ok) {
+      // If no authenticated user, show demo values instead of calling API
+      if (!token) {
+        setIsDemo(true);
+        setPoolBalance('R$ ' + Number(DEMO_POOL).toFixed(2));
+        setUserBalance('R$ ' + Number(DEMO_USER_BALANCE).toFixed(2));
+        // do not fetch squares for demo (keep empty or default)
+        setSquares([]);
+        return;
+      }
+
+      setIsDemo(false);
+      const res = await axios.get((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') + '/pool/status', { headers: { Authorization: 'Bearer ' + token } }).catch(async (err) => {
+        // if token is invalid, clear it and fall back to demo
+        console.error('fetchStatus error', err);
+        setToken('');
+        localStorage.removeItem('token');
+        setIsDemo(true);
+        setPoolBalance('R$ ' + Number(DEMO_POOL).toFixed(2));
+        setUserBalance('R$ ' + Number(DEMO_USER_BALANCE).toFixed(2));
+      });
+      if (res && res.data && res.data.ok) {
         setPoolBalance('R$ ' + Number(res.data.poolBalance).toFixed(2));
         setSquares(res.data.squares || []);
-      }
-      if (token) {
+        // fetch user balance
         const me = await axios.get((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') + '/auth/me', { headers: { Authorization: 'Bearer ' + token } }).catch(()=>null);
         if (me && me.data && me.data.user) setUserBalance('R$ ' + Number(me.data.user.balance).toFixed(2));
       }
@@ -73,20 +95,21 @@ export default function Home() {
     const code = prompt('Código de 6 dígitos:');
     const password = prompt('Defina uma senha (para login futuro):');
     const res = await axios.post((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') + '/auth/verify', { email, code, password });
-    if (res.data.ok && res.data.token) { setToken(res.data.token); localStorage.setItem('token', res.data.token); alert('Verificado e logado'); }
+    if (res.data.ok && res.data.token) { setToken(res.data.token); localStorage.setItem('token', res.data.token); alert('Verificado e logado'); fetchStatus(); }
   }
   async function login() {
     const email = prompt('E-mail:');
     const password = prompt('Senha:');
     const res = await axios.post((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') + '/auth/login', { email, password });
-    if (res.data.ok && res.data.token) { setToken(res.data.token); localStorage.setItem('token', res.data.token); alert('Logado'); }
+    if (res.data.ok && res.data.token) { setToken(res.data.token); localStorage.setItem('token', res.data.token); alert('Logado'); fetchStatus(); }
   }
+
   async function deposit() {
     if (!token) return alert('Faça login primeiro');
     const amount = parseFloat(prompt('Valor a depositar (ex: 100.00):'));
     if (!amount) return;
     const res = await axios.post((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') + '/payments/deposit', { amount, method: 'pix' }, { headers: { Authorization: 'Bearer ' + token } });
-    if (res.data.ok) { alert('Depósito simulado'); fetchStatus(); }
+    if (res.data.ok) { alert('Dep��sito simulado'); fetchStatus(); }
   }
 
   async function setPixKey() {
@@ -133,6 +156,10 @@ export default function Home() {
             <button className="action-button" onClick={withdrawPix}>Sacar (PIX)</button>
           </div>
         </div>
+
+        {isDemo && (
+          <div className="demo-banner">CONTA DEMONSTRATIVA — Valores fictícios: saldo do usuário R$ {Number(DEMO_USER_BALANCE).toFixed(2)} e liquidez da piscina R$ {Number(DEMO_POOL).toFixed(2)}. Cadastre-se para ver valores reais.</div>
+        )}
 
         <div className="balance-row">
           <div className="balance-card">
