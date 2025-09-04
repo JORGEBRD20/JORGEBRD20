@@ -104,20 +104,41 @@ router.post('/pix/deposit/confirm', async (req, res) => {
     if (!reference) return res.status(400).json({ error: 'reference required' });
     const conn = await pool.getConnection();
     try {
-      const [rows] = await conn.query('SELECT id, user_id, amount, status FROM transactions WHERE reference = ? AND type = ? LIMIT 1', [reference, 'deposit']);
+      const txTable = table('transactions', false);
+    const histTable = table('historico', false);
+    // Try real first
+    let [rows] = await conn.query(`SELECT id, user_id, amount, status FROM ${txTable} WHERE reference = ? AND type = ? LIMIT 1`, [reference, 'deposit']);
+    if (!rows.length) {
+      // try demo
+      const txTableDemo = table('transactions', true);
+      const histTableDemo = table('historico', true);
+      [rows] = await conn.query(`SELECT id, user_id, amount, status FROM ${txTableDemo} WHERE reference = ? AND type = ? LIMIT 1`, [reference, 'deposit']);
       if (!rows.length) return res.status(404).json({ error: 'transaction not found' });
       const tx = rows[0];
       if (tx.status === 'completed') return res.json({ ok: true, message: 'already completed' });
       await conn.beginTransaction();
       try {
         await conn.query('UPDATE usuarios SET balance = balance + ? WHERE id = ?', [tx.amount, tx.user_id]);
-        await conn.query('UPDATE piscina SET balance = balance + ? WHERE id = 1', [tx.amount]);
-        await conn.query('UPDATE transactions SET status = ?, details = ? WHERE id = ?', ['completed', JSON.stringify({ confirmed_at: new Date() }), tx.id]);
-        await conn.query('INSERT INTO historico (user_id, type, amount, details) VALUES (?, ?, ?, ?)', [tx.user_id, 'deposit', tx.amount, `pix_ref:${reference}`]);
-        await logEvent({ userId: tx.user_id, type: 'pix_deposit_confirm', details: { txId: tx.id, amount: tx.amount, reference }, conn });
+        await conn.query('UPDATE demo_piscina SET balance = balance + ? WHERE id = 1', [tx.amount]);
+        await conn.query(`UPDATE ${txTableDemo} SET status = ?, details = ? WHERE id = ?`, ['completed', JSON.stringify({ confirmed_at: new Date() }), tx.id]);
+        await conn.query(`INSERT INTO ${histTableDemo} (user_id, type, amount, details) VALUES (?, ?, ?, ?)`, [tx.user_id, 'deposit', tx.amount, `pix_ref:${reference}`]);
+        await logEvent({ userId: tx.user_id, type: 'pix_deposit_confirm', details: { txId: tx.id, amount: tx.amount, reference }, conn, demo: true });
         await conn.commit();
       } catch (err) { await conn.rollback(); throw err; }
       return res.json({ ok: true });
+    }
+    const tx = rows[0];
+    if (tx.status === 'completed') return res.json({ ok: true, message: 'already completed' });
+    await conn.beginTransaction();
+    try {
+      await conn.query('UPDATE usuarios SET balance = balance + ? WHERE id = ?', [tx.amount, tx.user_id]);
+      await conn.query('UPDATE piscina SET balance = balance + ? WHERE id = 1', [tx.amount]);
+      await conn.query(`UPDATE ${txTable} SET status = ?, details = ? WHERE id = ?`, ['completed', JSON.stringify({ confirmed_at: new Date() }), tx.id]);
+      await conn.query(`INSERT INTO ${histTable} (user_id, type, amount, details) VALUES (?, ?, ?, ?)`, [tx.user_id, 'deposit', tx.amount, `pix_ref:${reference}`]);
+      await logEvent({ userId: tx.user_id, type: 'pix_deposit_confirm', details: { txId: tx.id, amount: tx.amount, reference }, conn, demo: false });
+      await conn.commit();
+    } catch (err) { await conn.rollback(); throw err; }
+    return res.json({ ok: true });
     } finally { conn.release(); }
   } catch (err) {
     console.error(err);
