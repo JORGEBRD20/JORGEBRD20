@@ -84,6 +84,8 @@ a{color:inherit}
 /* Added layout classes for index page (preserve original colors and rounded styles) */
 .header-bar{background:#007bff;color:#fff;padding:20px}
 .header-bar .app-title{margin:0}
+.header-top{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.header-actions{display:flex;gap:8px}
 .balance-row{display:flex;justify-content:space-around;margin-top:10px}
 .balance-card{background:#0056b3;padding:20px;border-radius:5px;color:#fff;width:45%}
 .balance-value{font-size:20px;font-weight:700}
