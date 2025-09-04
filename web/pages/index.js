@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import '../styles/globals.css';
 
 export default function Home() {
   const api = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
