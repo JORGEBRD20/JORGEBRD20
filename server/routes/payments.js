@@ -52,7 +52,8 @@ router.get('/pix/key', authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const conn = await pool.getConnection();
     try {
-      const [rows] = await conn.query('SELECT pix_key, type, created_at FROM pix_keys WHERE user_id = ?', [userId]);
+      const pixTable = table('pix_keys', req.user && req.user.demo);
+      const [rows] = await conn.query(`SELECT pix_key, type, created_at FROM ${pixTable} WHERE user_id = ?`, [userId]);
       if (!rows.length) return res.json({ ok: true, pixKey: null });
       return res.json({ ok: true, pixKey: rows[0] });
     } finally { conn.release(); }
