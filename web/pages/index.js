@@ -89,6 +89,30 @@ export default function Home() {
     if (res.data.ok) { alert('Depósito simulado'); fetchStatus(); }
   }
 
+  async function setPixKey() {
+    if (!token) return alert('Faça login primeiro');
+    const pixKey = prompt('Informe sua chave PIX (CPF/CNPJ/e-mail/telefone/chave aleatória):');
+    if (!pixKey) return;
+    const res = await axios.post((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') + '/payments/pix/key', { pixKey }, { headers: { Authorization: 'Bearer ' + token } });
+    if (res.data.ok) { alert('Chave PIX registrada'); }
+  }
+
+  async function depositPix() {
+    if (!token) return alert('Faça login primeiro');
+    const amount = parseFloat(prompt('Valor a depositar via PIX (ex: 100.00):'));
+    if (!amount) return;
+    const res = await axios.post((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') + '/payments/pix/deposit', { amount }, { headers: { Authorization: 'Bearer ' + token } });
+    if (res.data.ok) { alert('Depósito via PIX confirmado (simulado). Ref: ' + res.data.reference); fetchStatus(); }
+  }
+
+  async function withdrawPix() {
+    if (!token) return alert('Faça login primeiro');
+    const amount = parseFloat(prompt('Valor a sacar via PIX (ex: 100.00):'));
+    if (!amount) return;
+    const res = await axios.post((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000') + '/payments/pix/withdraw', { amount }, { headers: { Authorization: 'Bearer ' + token } });
+    if (res.data.ok) { alert('Saque via PIX executado (simulado). Tx: ' + res.data.txId); fetchStatus(); }
+  }
+
   useEffect(() => { const t = localStorage.getItem('token'); if (t) setToken(t); }, []);
 
   return (
