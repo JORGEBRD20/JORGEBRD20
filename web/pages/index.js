@@ -94,7 +94,16 @@ export default function Home() {
   return (
     <div>
       <header className="header-bar">
-        <h1 className="app-title">PISCINA DE LIQUIDEZ</h1>
+        <div className="header-top">
+          <h1 className="app-title">PISCINA DE LIQUIDEZ</h1>
+          <div className="action-row header-actions">
+            <button className="action-button" onClick={sendCode}>Cadastrar</button>
+            <button className="action-button" onClick={verify}>Confirmar Código</button>
+            <button className="action-button" onClick={login}>Login</button>
+            <button className="action-button" onClick={deposit}>Depositar</button>
+          </div>
+        </div>
+
         <div className="balance-row">
           <div className="balance-card">
             <p>Liquidez da Piscina:</p>
@@ -130,13 +139,6 @@ export default function Home() {
       <div id="history-container" className="history-container">
         <div className="history-title">Histórico de Números Sorteados</div>
         <div className="history-list">{history.length? history.map((h,idx)=>(<div key={idx}>{new Date(h.time).toLocaleString()}: {h.results.map(r=>`#${r.slot} (R$ ${r.net})`).join(', ')}</div>)) : 'Nenhum número sorteado ainda.'}</div>
-      </div>
-
-      <div className="action-row">
-        <button className="action-button" onClick={sendCode}>Cadastrar</button>
-        <button className="action-button" onClick={verify}>Confirmar Código</button>
-        <button className="action-button" onClick={login}>Login</button>
-        <button className="action-button" onClick={deposit}>Depositar</button>
       </div>
     </div>
   );
