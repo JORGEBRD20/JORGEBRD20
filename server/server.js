@@ -13,6 +13,14 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
+// Basic security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
 app.use('/auth', authRoutes);
 app.use('/pool', poolRoutes);
 app.use('/payments', paymentsRoutes);
