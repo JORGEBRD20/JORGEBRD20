@@ -16,6 +16,7 @@ app.use(bodyParser.json());
 app.use('/auth', authRoutes);
 app.use('/pool', poolRoutes);
 app.use('/payments', paymentsRoutes);
+app.use('/snake', require('./routes/snake'));
 
 // simple health
 app.get('/health', (req, res) => res.json({ ok: true }));
