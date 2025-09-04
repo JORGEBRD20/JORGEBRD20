@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../db');
 const authMiddleware = require('../utils/authMiddleware');
 const { logEvent } = require('../utils/logger');
+const { table } = require('../utils/dbHelpers');
 
 // Return pool status and squares
 router.get('/status', async (req, res) => {
