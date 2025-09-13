@@ -1,0 +1,93 @@
+/* Scoped page wrapper */
+.roleta-page { font-family: Arial, sans-serif; color: white; background-color: #1a1a1a; min-height: 100vh; }
+
+/* Fixed top header with animated gradient text */
+.top-header { position: fixed; top: 0; left: 0; right: 0; height: 70px; display: flex; align-items: center; justify-content: center; background: linear-gradient(90deg, rgba(0, 10, 50, 0.8), rgba(0, 100, 200, 0.8)); backdrop-filter: blur(10px); color: #ffffff; font-weight: bold; z-index: 1000; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); }
+.top-header-text { font-size: 28px; text-transform: uppercase; background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bf178, #42a5f5); background-size: 400% 400%; -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: gradientMove 6s infinite ease-in-out; }
+@keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.fade-in { opacity: 0; transform: translateY(-20px); animation: fadeIn 1s ease-in-out forwards; }
+@keyframes fadeIn { 0% { opacity: 0; transform: translateY(-20px); } 100% { opacity: 1; transform: translateY(0); } }
+
+/* Offset to avoid overlap with fixed header */
+.game-shell { padding-top: 90px; padding-left: 12px; padding-right: 12px; }
+
+/* Motivational marquee */
+.motivational-banner { margin: 70px auto 0; background-color: #222; border: 2px solid #fbc531; border-radius: 10px; color: white; max-width: 980px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+.motivational-banner marquee { padding: 8px 10px; }
+
+/* Main casino card */
+.casino-card { margin: 20px auto; max-width: 600px; padding: 20px; background: linear-gradient(135deg, #fbc531, #e84118); border-radius: 18px; box-shadow: 0 8px 15px rgba(0, 0, 0, 0.5); border: 3px solid #fbc531; }
+.game-title { margin: 0 0 20px; font-size: 32px; color: white; text-shadow: 0 0 10px white, 0 0 20px yellow; text-transform: uppercase; text-align: center; }
+
+/* Auth */
+.auth-bar { position: relative; height: 0; }
+.auth-bar .action-button { position: absolute; top: -10px; left: 0; }
+
+/* Stats */
+.stats-row { display: flex; justify-content: space-around; margin: 20px 0; gap: 10px; flex-wrap: wrap; }
+.stat-box { background: #333; padding: 10px 20px; border-radius: 10px; color: #fbc531; font-size: 18px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); width: 180px; text-align: center; }
+
+/* Slot machine */
+.slot-section { margin: 20px auto; text-align: center; }
+.reels-row { display: flex; justify-content: space-between; margin: 20px 0; gap: 10px; }
+.reel-box { width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; color: white; background-color: #333; border-radius: 10px; border: 2px solid white; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); }
+
+/* Buttons */
+.action-button { padding: 10px 20px; font-size: 18px; background-color: #44bd32; color: white; border: none; border-radius: 5px; cursor: pointer; text-transform: uppercase; font-weight: bold; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); transition: background-color 0.3s, transform 0.1s; }
+.action-button:hover { background-color: #27ae60; transform: scale(1.05); }
+.action-button:disabled { opacity: 0.6; cursor: not-allowed; }
+.link-button { background: transparent; color: #44bd32; border: none; padding: 0; cursor: pointer; font-weight: bold; text-decoration: underline; }
+
+/* Deposit */
+.deposit-wrapper { margin-top: 14px; }
+.deposit-instructions { margin: 20px auto; padding: 15px; background-color: #222; border: 2px solid #fbc531; border-radius: 10px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); color: white; font-size: 16px; text-align: left; max-width: 500px; }
+.deposit-instructions a { color: #44bd32; text-decoration: none; font-weight: bold; }
+.deposit-instructions a:hover { text-decoration: underline; }
+.qr-image-box { display: flex; justify-content: center; }
+.qr-image-box img { width: 150px; height: 150px; }
+
+/* Withdraw */
+.withdraw-wrapper { margin-bottom: 10px; }
+
+/* Spin feedback */
+.status-text { color: #fff; font-size: 16px; margin-top: 6px; }
+.result-text { margin-top: 10px; font-size: 20px; color: white; border: 2px solid green; border-radius: 10px; padding: 10px; display: inline-block; }
+.result-text.error { border-color: red; }
+.bonus-text { color: #44bd32; font-weight: bold; margin-top: 10px; }
+
+/* Spin animation */
+.spin-animation { animation: spin 0.3s linear infinite; }
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Animal selection */
+.animal-picker { margin: 20px 0; text-align: left; }
+.animal-list { list-style: none; padding: 0; margin: 0; }
+.animal-item { margin: 5px 0; }
+.animal-label { display: flex; align-items: center; gap: 8px; }
+.animal-checkbox { width: 18px; height: 18px; }
+
+/* History */
+.history-panel { margin-top: 20px; text-align: left; background-color: #222; padding: 10px; border-radius: 10px; color: white; font-size: 14px; max-height: 150px; overflow-y: auto; }
+.history-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+
+/* Limits note */
+.instruction-hint { margin: 10px 0; font-weight: bold; text-transform: uppercase; }
+.limits-note { margin: 5px 0; text-transform: uppercase; font-weight: bold; }
+
+/* Footer */
+.footer-bar { margin-top: 20px; padding: 10px 0; background-color: #222; color: #ccc; text-align: center; }
+
+/* Modal (reusing original colors) */
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1001; }
+.modal-card { position: relative; background-color: #222; border: 2px solid #fbc531; padding: 20px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5); color: white; width: 270px; max-width: 90%; display: flex; flex-direction: column; gap: 9px; }
+.modal-form { display: flex; flex-direction: column; gap: 9px; }
+.modal-card label { font-weight: bold; margin-top: 5px; }
+.modal-card input { padding: 8px; border: 1px solid #fbc531; border-radius: 5px; background-color: #1a1a1a; color: white; }
+.modal-close { position: absolute; top: 10px; right: 10px; background: transparent; color: white; border: none; cursor: pointer; font-size: 18px; }
+.error-text { color: red; }
+
+/* Responsive */
+@media (max-width: 640px) {
+  .stat-box { width: 45%; }
+  .reels-row { justify-content: center; }
+}
